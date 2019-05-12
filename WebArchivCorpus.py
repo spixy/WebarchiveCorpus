@@ -10,20 +10,29 @@ def printHelp():
     exit()
 
 def getToday():
-    return date.today().strftime("%y%m%d") + "000000"
+    return date.today().strftime("%Y%m%d") + "000000"
 
 def downloadWebsite(webUrl, dateTime):
     waybackUrl = "https://wayback.webarchiv.cz/wayback/" + dateTime + "/" + webUrl
     return requests.get(waybackUrl).text.encode('utf-8')
 
-def html_escape(text):
-    return text.replace('<', '&lt;').replace('>', '&gt;')
+def printDoc(author, title, url):
+    author = '' if author is None else 'author="' + author + '" '
+    title = '' if title is None else 'title="' + title + '" '
+    url = '' if url is None else 'url="' + url + '" '
+    print('<doc ' + author + title + url + '>')
 
-def writeToOutput(paragraphs, no_boilerplate):
+def printTag(tag, text):
+    escaped_text = text.replace('<', '&lt;').replace('>', '&gt;').strip()
+    print('<' + tag + '>')
+    print(escaped_text)
+    print('</' + tag + '>')
+
+def printParagraphs(paragraphs, no_boilerplate):
     for paragraph in paragraphs:
         if paragraph['class'] != 'bad':
             if paragraph['heading']:
-                tag = 'h'
+                tag = 'head'
             else:
                 tag = 'p'
         else:
@@ -31,9 +40,7 @@ def writeToOutput(paragraphs, no_boilerplate):
                 continue
             else:
                 tag = 'b'
-        escaped_paragraph = html_escape(paragraph['text']).strip()
-        print('<' + tag + '>')
-        print(escaped_paragraph)
+        printTag(tag, paragraph['text'])
 
 if len(sys.argv) == 1:
     printHelp()
@@ -43,7 +50,8 @@ dateTime = sys.argv[2] if len(sys.argv) >= 3 else getToday()
 language = sys.argv[3] if len(sys.argv) >= 4 else "Czech"
 
 htmlContent = downloadWebsite(webUrl, dateTime)
-
 paragraphs = justext.justext(htmlContent, justext.get_stoplist(language))
 
-writeToOutput(paragraphs, False)
+printDoc(None, None, webUrl)
+printParagraphs(paragraphs, True)
+print('</doc>')
