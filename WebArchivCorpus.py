@@ -53,5 +53,5 @@ htmlContent = downloadWebsite(webUrl, dateTime)
 paragraphs = justext.justext(htmlContent, justext.get_stoplist(language))
 
 printDoc(None, None, webUrl)
-printParagraphs(paragraphs, True)
+printParagraphs(paragraphs, False)
 print('</doc>')
