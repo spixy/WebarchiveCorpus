@@ -1,16 +1,17 @@
 import sys
+import argparse
 import justext
 import requests
 from datetime import date
 
-def printHelp():
-    print("Usage: " + sys.argv[0] + " [web url] [date] [language]")
-    print("  date        in 'yymmddhhmmss' format, default value is now (" + getToday() + ")")
-    print("  language    default value is 'Czech'")
-    exit()
-
-def getToday():
-    return date.today().strftime("%Y%m%d") + "000000"
+def createArgParser():
+    currentDate = date.today().strftime("%Y%m%d") + "000000"
+    ap = argparse.ArgumentParser()
+    ap.add_argument("websiteUrl", nargs=1)
+    ap.add_argument("-d", "--date", required=False, help="in 'yymmddhhmmss' format, default value is current date (" + currentDate + ")", default=currentDate)
+    ap.add_argument("-l", "--lang", required=False, help="language, default value is 'Czech'", default="Czech")
+    ap.add_argument("-b", "--boilerplate", required=False, help="enables boilerplate tags", action="store_true")
+    return ap
 
 def downloadWebsite(webUrl, dateTime):
     waybackUrl = "https://wayback.webarchiv.cz/wayback/" + dateTime + "/" + webUrl
@@ -28,7 +29,7 @@ def printTag(tag, text):
     print(escaped_text)
     print('</' + tag + '>')
 
-def printParagraphs(paragraphs, no_boilerplate):
+def printParagraphs(paragraphs, boilerplate):
     for paragraph in paragraphs:
         if paragraph['class'] != 'bad':
             if paragraph['heading']:
@@ -36,22 +37,28 @@ def printParagraphs(paragraphs, no_boilerplate):
             else:
                 tag = 'p'
         else:
-            if no_boilerplate:
-                continue
-            else:
+            if boilerplate:
                 tag = 'b'
+            else:
+                continue
         printTag(tag, paragraph['text'])
 
-if len(sys.argv) == 1:
-    printHelp()
+ap = createArgParser()
 
-webUrl = sys.argv[1]
-dateTime = sys.argv[2] if len(sys.argv) >= 3 else getToday()
-language = sys.argv[3] if len(sys.argv) >= 4 else "Czech"
+if len(sys.argv) == 1:
+    ap.print_help()
+    exit()
+
+args = vars(ap.parse_args())
+
+webUrl = args["websiteUrl"][0]
+dateTime = args["date"]
+language = args["lang"]
+boilerplate = args["boilerplate"]
 
 htmlContent = downloadWebsite(webUrl, dateTime)
 paragraphs = justext.justext(htmlContent, justext.get_stoplist(language))
 
 printDoc(None, None, webUrl)
-printParagraphs(paragraphs, False)
+printParagraphs(paragraphs, boilerplate)
 print('</doc>')
